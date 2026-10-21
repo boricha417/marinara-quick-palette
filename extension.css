@@ -1,0 +1,600 @@
+/* ───────── 퀵 팔레트 v1.3.9 — 저널 미니멀 ─────────
+   메뉴·메모는 앱 테마와 무관하게 "흰 종이 위의 잉크" 아이덴티티.
+   warm monochrome + 포인트는 그린 파스텔 하나로만 잠근다.
+   (canvas #FFFFFF/#FAF9F6 · ink #2F3437 · line #E7E4DD · accent #3E6B4F)
+   칩과 + 버튼만 채팅 입력창 크롬 토큰을 따라 앱 테마에 녹아든다. */
+
+.qp-menu,
+.qp-overlay,
+.qp-toast {
+  --qp-paper: #ffffff;
+  --qp-paper-warm: #faf9f6;
+  --qp-paper-hover: #f1f0ec;
+  --qp-ink: #2f3437;
+  --qp-ink-strong: #191919;
+  --qp-muted: #8d867a;
+  --qp-line: #e7e4dd;
+  --qp-line-soft: #eeece6;
+  --qp-green-bg: #edf3ec;
+  --qp-green-fg: #3e6b4f;
+  --qp-red: #c0524d;
+  --qp-serif: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  --qp-sans: -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Helvetica Neue", sans-serif;
+  font-family: var(--qp-sans);
+  box-sizing: border-box;
+}
+.qp-menu *,
+.qp-chips-dock *,
+.qp-overlay *,
+.qp-toast * {
+  box-sizing: border-box;
+}
+
+/* ── 원래 파일 첨부 버튼 숨김 (input[type=file] 바로 뒤 버튼) ── */
+[data-qp-shell] input[type="file"] + button {
+  display: none !important;
+}
+
+/* ── + 버튼 (원래 첨부 버튼 자리, 입력창 크롬을 따라감) ── */
+.qp-plus-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--marinara-chat-chrome-button-text, rgba(120, 120, 120, 0.7));
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.18s ease;
+  padding: 0;
+}
+@media (min-width: 640px) {
+  .qp-plus-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+}
+.qp-plus-btn svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  transition: transform 0.18s ease;
+}
+.qp-plus-btn:hover {
+  background: var(--marinara-chat-message-action-bg-hover, rgba(120, 120, 120, 0.12));
+  color: var(--marinara-chat-chrome-button-text-hover, inherit);
+}
+.qp-plus-btn:active {
+  transform: scale(0.9);
+}
+.qp-plus-btn--open svg {
+  transform: rotate(45deg);
+}
+
+/* ── 팝업 메뉴: 흰 종이 카드 ── */
+.qp-menu {
+  position: fixed;
+  z-index: 70;
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 228px;
+  max-width: min(300px, calc(100vw - 16px));
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper);
+  color: var(--qp-ink);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+.qp-menu--open {
+  display: flex;
+}
+
+.qp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--qp-ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.qp-item:hover {
+  background: var(--qp-paper-hover);
+}
+.qp-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  color: var(--qp-muted);
+}
+.qp-item-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+.qp-glyph {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 1;
+  font-family: var(--qp-serif, Georgia, serif);
+}
+/* ” 는 글자 위쪽에 그려지는 글리프라 살짝 아래로 내려 시각적 중앙을 맞춘다 */
+.qp-glyph--quote {
+  transform: translateY(0.26em);
+}
+/* 나레이션 * (SVG): flex 중앙 정렬이라 위치 보정 불필요, 크기만 키운다 */
+.qp-item-icon.qp-icon--star svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+.qp-item-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 체크박스: 켜지면 그린 파스텔 */
+.qp-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1.5px solid var(--qp-line);
+  background: var(--qp-paper);
+  color: transparent;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.qp-checkbox:hover {
+  border-color: var(--qp-green-fg);
+}
+.qp-checkbox--on {
+  background: var(--qp-green-bg);
+  border-color: var(--qp-green-fg);
+  color: var(--qp-green-fg);
+}
+.qp-checkbox svg {
+  width: 11px;
+  height: 11px;
+}
+
+/* ── 미니 탭 독: 전체 폭 투명 래퍼 (확장 서랍 자동 수집 회피) ── */
+.qp-chips-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 55;
+  display: none;
+  pointer-events: none;
+}
+/* 독을 flex로 깔아야 인라인 베이스라인 여백이 안 생겨 탭이 입력창에 딱 붙는다 */
+.qp-chips-dock--show {
+  display: flex;
+}
+.qp-chips {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+/* 입력창 상단에 딱 붙는 탭 — 색은 입력창 외곽선을 그대로 따라감.
+   아이콘 색(--qp-chip-ink)은 JS가 배경 밝기를 재서 크림색/잉크색을 고른다. */
+.qp-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 1.6rem;
+  padding: 0;
+  border: 1px solid var(--marinara-chat-chrome-input-border, rgba(120, 120, 120, 0.25));
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: var(--marinara-chat-chrome-input-border, rgba(120, 120, 120, 0.18));
+  color: var(--qp-chip-ink, var(--marinara-chat-chrome-panel-text, rgba(60, 60, 60, 0.85)));
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.qp-chip:hover {
+  background: var(--marinara-chat-chrome-input-border-focus, rgba(120, 120, 120, 0.32));
+}
+.qp-chip:active {
+  filter: brightness(0.94);
+}
+.qp-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.qp-chip-icon svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.qp-chip .qp-glyph {
+  font-size: 1.05rem;
+  font-family: Georgia, "Times New Roman", serif;
+}
+.qp-chip-icon.qp-icon--star svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+/* ── 메모 모달: 따뜻한 종이 저널 ── */
+/* 오버레이 자체가 스크롤 가능해야 모바일 키보드로 화면이 좁아져도
+   저장 버튼까지 내려갈 수 있다. margin:auto 가 평소엔 중앙 정렬을 맡는다. */
+.qp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  overflow-y: auto;
+  padding: 20px;
+  background: rgba(25, 25, 25, 0.4);
+}
+.qp-modal {
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  width: min(680px, 100%);
+  max-height: min(72vh, 560px);
+  max-height: min(72dvh, 560px);
+  border-radius: 14px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper-warm);
+  color: var(--qp-ink);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.16);
+  /* 키보드 등으로 공간이 극단적으로 좁아지면 모달 내부도 스크롤되게 */
+  overflow-y: auto;
+}
+
+.qp-modal-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--qp-line);
+}
+.qp-modal-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.qp-modal-title {
+  font-family: var(--qp-serif);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.6;
+  color: var(--qp-ink-strong);
+}
+.qp-modal-head-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.qp-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--qp-muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.qp-icon-btn:hover {
+  background: var(--qp-paper-hover);
+  color: var(--qp-ink);
+}
+.qp-icon-btn--active {
+  background: var(--qp-green-bg);
+  color: var(--qp-green-fg);
+}
+.qp-icon-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+.qp-icon-btn--sm {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+.qp-icon-btn--sm svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+.qp-icon-btn--danger:hover {
+  color: var(--qp-red);
+}
+.qp-icon-btn--pinned {
+  color: var(--qp-green-fg);
+}
+.qp-icon-btn--pinned svg {
+  fill: currentColor;
+}
+.qp-icon-btn--confirm {
+  width: auto;
+  padding: 0 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--qp-red);
+}
+.qp-icon-btn--confirm:hover {
+  background: #a94540;
+  color: #fff;
+}
+
+.qp-search-row {
+  flex-shrink: 0;
+  padding: 12px 18px 0;
+}
+
+.qp-add-btn {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 18px;
+  padding: 9px;
+  border-radius: 8px;
+  border: 1px dashed var(--qp-line);
+  background: var(--qp-paper);
+  color: var(--qp-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.qp-add-btn:hover {
+  background: var(--qp-green-bg);
+  border-color: var(--qp-green-fg);
+  color: var(--qp-green-fg);
+}
+.qp-add-btn svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.qp-input {
+  width: 100%;
+  padding: 8px 11px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper);
+  color: var(--qp-ink);
+  font: inherit;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+.qp-input:focus {
+  border-color: var(--qp-green-fg);
+}
+.qp-input::placeholder {
+  color: var(--qp-muted);
+}
+
+/* 편집기 */
+.qp-editor {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 18px 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper);
+}
+/* 제목: 자동완성 바 회피용 한 줄 textarea */
+.qp-editor-title {
+  height: 2.45rem;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.5;
+}
+.qp-editor-textarea {
+  min-height: 110px;
+  resize: vertical;
+  line-height: 1.6;
+  background: var(--qp-paper-warm);
+}
+.qp-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.qp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper);
+  color: var(--qp-ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.qp-btn:hover {
+  background: var(--qp-paper-hover);
+}
+.qp-btn--primary {
+  background: var(--qp-ink);
+  border-color: var(--qp-ink);
+  color: #fff;
+}
+.qp-btn--primary:hover {
+  background: var(--qp-ink-strong);
+}
+.qp-btn--ghost {
+  flex: 1;
+  background: var(--qp-paper-warm);
+  border-color: var(--qp-line-soft);
+  color: var(--qp-ink);
+}
+.qp-btn--ghost:hover {
+  background: var(--qp-paper-hover);
+}
+.qp-btn svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* 메모 목록 */
+.qp-memo-list {
+  flex: 1;
+  min-height: 5rem;
+  overflow-y: auto;
+  padding: 0 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.qp-memo-list::-webkit-scrollbar {
+  width: 6px;
+}
+.qp-memo-list::-webkit-scrollbar-thumb {
+  background: var(--qp-line);
+  border-radius: 3px;
+}
+
+.qp-empty {
+  padding: 36px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--qp-muted);
+}
+
+.qp-memo-card {
+  flex-shrink: 0; /* 리스트 공간이 부족해도 카드가 찌그러지지 않고 리스트가 스크롤되게 */
+  border-radius: 10px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper);
+  overflow: hidden;
+}
+.qp-memo-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.qp-memo-info {
+  flex: 1;
+  min-width: 0;
+}
+.qp-memo-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--qp-ink-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qp-memo-date {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--qp-muted);
+}
+.qp-memo-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.qp-memo-chevron {
+  display: inline-flex;
+  color: var(--qp-muted);
+  transition: transform 0.15s ease;
+}
+.qp-memo-chevron svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+.qp-memo-card--open .qp-memo-chevron {
+  transform: rotate(180deg);
+}
+
+/* 펼친 내용: 짧으면 글 높이만큼, 길면 한도(11rem)에서 안쪽 스크롤 */
+.qp-memo-body {
+  margin: 0 12px 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--qp-paper-warm);
+  border: 1px solid var(--qp-line-soft);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--qp-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 11rem;
+  overflow-y: auto;
+}
+.qp-memo-body::-webkit-scrollbar {
+  width: 6px;
+}
+.qp-memo-body::-webkit-scrollbar-thumb {
+  background: var(--qp-line);
+  border-radius: 3px;
+}
+
+.qp-memo-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 12px 11px;
+}
+
+/* ── 토스트 ── */
+.qp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  z-index: 310;
+  transform: translateX(-50%) translateY(8px);
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--qp-line);
+  background: var(--qp-paper);
+  color: var(--qp-ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.qp-toast--show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
