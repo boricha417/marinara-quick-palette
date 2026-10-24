@@ -1,4 +1,4 @@
-/* ───────── 퀵 팔레트 v1.3.9 ─────────
+/* ───────── 퀵 팔레트 v1.3.10 ─────────
    채팅 입력창의 파일 첨부 버튼을 + 메뉴로 교체.
    - 대사 따옴표("") / 나레이션(**) 빠른 입력 (문단에 홀수 개면 하나만 추가)
    - 이미지 추가 (마리나라 순정 파일 첨부 그대로)
@@ -135,9 +135,14 @@
       memoOrdering: "manual",
     };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); } catch {}
+    // 서버 저장(다른 기기 동기화)이 거절되면 알린다. 전에는 결과를 보지 않아, 예컨대 메모가 1MB 한도를
+    // 넘어 거절돼도 이 브라우저 사본만 갱신된 채 조용히 지나가 다른 기기에서 옛 메모가 보였다.
     try {
       if (typeof marinara !== "undefined" && marinara?.storage?.patch) {
-        void marinara.storage.patch({ [STORAGE_KEY]: snapshot });
+        marinara.storage.patch({ [STORAGE_KEY]: snapshot }).then(null, (error) => {
+          console.warn("[퀵 팔레트] 서버 저장 실패", error);
+          toast("서버에 저장하지 못했어요. 이 브라우저에만 남아 있어요");
+        });
       }
     } catch {}
   }
@@ -959,8 +964,13 @@
   }
 
   // ---------- 시작/정리 ----------
+  let stopped = false;
+
   async function start() {
     await loadState();
+    // 불러오는 사이 꺼졌으면(켜고 바로 끄기, 재승인) 여기서 멈춘다. 전에는 stop()이 먼저 지나간 뒤
+    // 아래가 이어져 0.7초마다 + 버튼을 다시 꽂는 타이머가 살아 있었다.
+    if (stopped) return;
     ensureMounted();
     bookmarkAvailable = !!document.querySelector(TB_LAUNCHER_SELECTOR);
     renderChips();
@@ -987,6 +997,7 @@
   }
 
   function stop() {
+    stopped = true;
     clearInterval(scanTimer);
     shellResizeObserver?.disconnect();
     for (const fn of cleanupFns.splice(0)) {
